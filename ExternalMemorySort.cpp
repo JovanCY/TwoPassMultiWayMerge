@@ -64,10 +64,12 @@ void Print_Buffers(int cur_size) {
 bool cmp_str(EmpRecord e1, EmpRecord e2) {
     return e2.eid>e1.eid; 
 }
+
+
 void Sort_in_Main_Memory(){
     sort(buffers,buffers+buffer_size,cmp_str);
     ofstream myFile;
-    myFile.open("f" + to_string(fileNum));
+    myFile.open("f" + to_string(fileNum)+ ".csv");
     for(int i = 0; i < buffer_size; i++) {
         myFile << buffers[i].eid << "," << buffers[i].ename << "," << buffers[i].age << "," << buffers[i].salary << endl;
     }
@@ -79,76 +81,58 @@ void Sort_in_Main_Memory(){
 // a sorted file called 'EmpSorted.csv'(The Final Output File).
 // You can change the return type and arguments as you see fit.
 
+//returns index of entry in buffer with lowest eid
+int lowestEid(EmpRecord buffer[], int size){
+    int result = -1;
+    int lowestNum = 9999999;
+    for (int i = 0; i<size; i++){
+        if (buffer[i].eid<lowestNum){
+            lowestNum = buffer[i].eid;
+            result = i;
+        }
+    }
+    return result;
+}
 
 void Merge_Runs_in_Main_Memory(){
-    fstream ouputFile;
-    fstream f1, f2, f3, f4;
-    EmpRecord e1;
-    EmpRecord e2;
+    int mergeNum = fileNum % buffer_size;
+    fstream outputFile;
+    fstream fileStreams[mergeNum];
     string s;
     int prev = -1;
-    for(int i = 0; i < fileNum; i+=2) {
-        cout << "yaba" << i << endl;
-        myFile.open("temp"+to_string(i));
-        f1.open("f"+to_string(i));
-        f2.open("f"+to_string(i+1));
-        
-        while(!f1.eof() && !f2.eof()) {
-            if(prev != 2) {
-                e1 = Grab_Emp_Record(f1);
-                if(e1.eid == -1) {
-                    break;
-                }
-            }
-            if(prev != 1) {
-                e2 = Grab_Emp_Record(f2);
-                if(e2.eid == -1) {
-                    break;
-                }
-            }
-            if(e1.eid > e2.eid) {
-                myFile << e2.eid << "," << e2.ename << "," << e2.age << "," << e2.salary << endl;
-                prev = 2;
-            }
-            else {
-                myFile << e1.eid << "," << e1.ename << "," << e1.age << "," << e1.salary << endl;
-                prev = 1;
-            }
-        }
-        if(!f1.eof()) {
-            if(e1.eid !=-1) {
-                myFile << e1.eid << "," << e1.ename << "," << e1.age << "," << e1.salary << endl;
-            }
-            while (!f1.eof())
-            {
-                printf("jere");
-                e1 = Grab_Emp_Record(f1);
-                if(e1.eid == -1) {
-                    break;
-                }
-                myFile << e1.eid << "," << e1.ename << "," << e1.age << "," << e1.salary << endl;
-            }
-        }
-        if(!f2.eof()) {
-            if(e2.eid != -1) {
-                myFile << e2.eid << "," << e2.ename << "," << e2.age << "," << e2.salary << endl;
-            }
-            while (!f2.eof())
-            {
-                printf("here");
-                e2 = Grab_Emp_Record(f2);
-                if(e2.eid == -1) {
-                    break;
-                }
-                myFile << e2.eid << "," << e2.ename << "," << e2.age << "," << e2.salary << endl;
-            }
-        }
-        f1.close();
-        f2.close();
-        myFile.close();
+    EmpRecord tempBuffers[buffer_size];
+
+    outputFile.open("EmpSorted.csv", ios::app);
+
+    for (int i = 0; i< mergeNum; i++){
+        string fileName = "f" + to_string(i)+ ".csv";
+        fileStreams[i].open(fileName);
+        tempBuffers[i] = Grab_Emp_Record(fileStreams[i]);
     }
 
-    cout << "Merging Not Implemented" << endl;
+    bool flag = true;
+    while (flag){
+        int lowest = lowestEid(tempBuffers, mergeNum);
+        outputFile << tempBuffers[lowest].eid << "," << tempBuffers[lowest].ename << "," << tempBuffers[lowest].age << "," << tempBuffers[lowest].salary << endl;
+       
+        EmpRecord temp = Grab_Emp_Record(fileStreams[lowest]);
+        if (temp.eid != -1){
+            tempBuffers[lowest] = temp;
+        }else{
+            tempBuffers[lowest].eid = 99999;
+        }  
+    
+    }
+    //add it to array if it isn't eof, if eof then close stream (?)
+
+    //tidy up the code
+    for (int i = 0; i< mergeNum; i++){
+        string strFName = "f" + to_string(i)+ ".csv";
+        const char* char_array = strFName.c_str();
+        fileStreams[i].close();
+        int status = remove(char_array);
+    }
+
 }
 
 int main() {
@@ -208,13 +192,13 @@ int main() {
 
 
   while(!flag_sorting_done){
-
       Merge_Runs_in_Main_Memory();
 
       break;
   }
   
   // You can delete the temporary sorted files (runs) after you're done in order to keep things clean and tidy.
+
 
   return 0;
 }
